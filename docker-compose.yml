@@ -1,0 +1,34 @@
+services:
+  docker-registry-cache:
+    image: registry:2 # L'image officielle du Docker Registry
+    container_name: docker-cache # Un nom facile à identifier pour votre conteneur
+    restart: always # Redémarre toujours le conteneur s'il s'arrête
+    ports:
+      - "5000:5000" # Mappe le port 5000 du conteneur au port 5000 de l'hôte
+    volumes:
+      # Monte le fichier de configuration dans le conteneur
+      - ./config.yml:/etc/docker/registry/config.yml:ro
+      # Monte un volume persistant pour stocker les images en cache.
+      # Remplacez /chemin/vers/votre/dossier/de/stockage par le chemin réel sur votre hôte.
+      - ./docker-cache:/var/lib/registry
+    environment:
+      - HTTP_PROXY=${SQUID_PROXY_ADDR}
+      - HTTPS_PROXY=${SQUID_PROXY_ADDR}
+      # Important : Ajoutez le nom du service lui-même à NO_PROXY
+      - NO_PROXY=${SQUID_NO_PROXY},docker-registry-cache
+
+  apt-cache: # Nouveau service pour Apt-Cacher-NG
+    image: sameersbn/apt-cacher-ng:latest # Ou une version spécifique comme 3.7.4-20220421
+    container_name: apt-cache-server
+    restart: always
+    ports:
+      - "3142:3142" # Port par défaut d'Apt-Cacher-NG
+    volumes:
+      # Volume pour le cache des paquets APT. Important pour la persistance des données.
+      - ./apt-cache:/var/cache/apt-cacher-ng
+    environment:
+      - HTTP_PROXY=${SQUID_PROXY_ADDR}
+      - HTTPS_PROXY=${SQUID_PROXY_ADDR}
+      # Important : Ajoutez le nom du service lui-même à NO_PROXY
+      - NO_PROXY=${SQUID_NO_PROXY},apt-cache
+  
